@@ -28,8 +28,8 @@ case $ans in
     fi
 esac
 
-# partition the stick with a small partition for clonezilla and
-#  a larger readwrite one for the payload
+# partition the stick with a small partition for clonezilla, a slightly larger
+# one for persistence, and a larger readwrite one for the payload
 
 parted -s ${dev} mklabel msdos
 partprobe $dev
@@ -41,7 +41,7 @@ sleep 1
 partprobe $dev
 
 mkdosfs ${dev}1
-mke2fs -F -L persistence  ${dev}2
+mke2fs -F  -j -L persistence  ${dev}2
 mke2fs -F -j ${dev}3
 
 wget ${clonezilla_url} -c -O /tmp/clonezilla.zip
