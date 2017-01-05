@@ -33,14 +33,16 @@ esac
 
 parted -s ${dev} mklabel msdos
 partprobe $dev
-parted -s -a cylinder ${dev} mkpart primary fat32 8192s 500mB
-parted -s -a cylinder ${dev} mkpart primary ext4 500mB 7gB
+parted -s -a cylinder ${dev} mkpart primary fat32 8192s 300mB
+parted -s -a cylinder ${dev} mkpart primary ext4 300mB 800mB
+parted -s -a cylinder ${dev} mkpart primary ext4 800mB 7gB
 
 sleep 1
 partprobe $dev
 
 mkdosfs ${dev}1
-mke2fs -F -j ${dev}2
+mke2fs -F -L persistence  ${dev}2
+mke2fs -F -j ${dev}3
 
 wget ${clonezilla_url} -c -O /tmp/clonezilla.zip
 
@@ -49,3 +51,8 @@ unzip /tmp/clonezilla*.zip -d /mnt/
 
 # substitute our own grub.cfg file
 cp -f ./grub.cfg /mnt/EFI/boot/
+
+# initialize the persistence config
+umount /mnt
+mount ${dev}2 /mnt
+echo "/ union" >> /mnt/persistence.conf
