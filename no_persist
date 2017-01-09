@@ -1,0 +1,52 @@
+#!/bin/bash
+# create a USB stick for installing a clonezilla bundle on /dev/sda 
+
+clonezilla_url=https://osdn.net/projects/clonezilla/downloads/66768/clonezilla-live-2.5.0-5-amd64.zip
+
+# verify that there is an USB drive installed
+REMOVABLE_DRIVES=""
+for _device in /sys/block/*/device; do
+    if echo $(readlink -f $_device)|egrep -q "usb"; then
+        _disk=`echo $_device | cut -f4 -d/`
+        REMOVABLE_DRIVES="$_disk"
+    fi
+done
+if [ -z $REMOVABLE_DRIVES ];then
+    echo "no usb found. Quitting"
+    exit 1
+fi
+dev="/dev/$REMOVABLE_DRIVES"
+
+#=================================================================================
+read -t 10 -p "\n\nI'm about to write $dev OK [Y/n]:" ans
+case $ans in
+"y"|"Y")
+    ;;
+*)
+    if [ ! -z $ans ];then
+        exit 1
+    fi
+esac
+
+# partition the stick with a small partition for clonezilla, 
+#  and a larger readwrite one for the payload
+
+parted -s ${dev} mklabel msdos
+partprobe $dev
+parted -s -a cylinder ${dev} mkpart primary fat32 8192s 250mB
+parted -s -a cylinder ${dev} mkpart primary ext4 250mB 4gB
+
+sleep 1
+partprobe $dev
+
+mkdosfs ${dev}1
+mke2fs -F -j ${dev}2
+
+wget ${clonezilla_url} -c -O /tmp/clonezilla.zip
+
+mount ${dev}1 /mnt
+unzip /tmp/clonezilla*.zip -d /mnt/
+
+# substitute our own grub.cfg file
+cp -f ./grub.cfg.nopersist /mnt/EFI/boot/
+
