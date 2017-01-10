@@ -30,11 +30,12 @@ esac
 
 # partition the stick with a small partition for clonezilla, 
 #  and a larger readwrite one for the payload
-
+umount /dev/usb*
+umount /mnt
 parted -s ${dev} mklabel msdos
 partprobe $dev
 parted -s -a cylinder ${dev} mkpart primary fat32 8192s 250mB
-parted -s -a cylinder ${dev} mkpart primary ext4 250mB 4gB
+parted -s -a cylinder ${dev} mkpart primary ext4 250mB 4500mB
 
 sleep 1
 partprobe $dev
