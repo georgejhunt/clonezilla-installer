@@ -1,0 +1,7 @@
+#!/bin/bash -x
+# this file is sourced to supply current context
+
+PRODUCT=iiab
+VERSION=6.2
+MAX_DISK=96
+

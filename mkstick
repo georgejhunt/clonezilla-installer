@@ -28,31 +28,73 @@ case $ans in
     fi
 esac
 
-# partition the stick with a small partition for clonezilla, a slightly larger
-# one for persistence, and a larger readwrite one for the payload
+umount /mnt
 
-parted -s ${dev} mklabel msdos
+# if we are running on a rpi, check that it is set up to boot from USB stick
+rpi=`cat /proc/cmdline | grep bcm2709.serial `
+if [ ! -z "$rpi" ]; then
+   if [ `grep program_usb_boot_mode /boot/config.txt` -ne 0 ];then
+     echo program_usb_boot_mode=1 >> /boot/config.txt
+   fi
+fi
+
+# wipe out the current partition table 
+dd if=/dev/zero of=${dev} bs=512 count=1 conv=notrunc
+
+# partition a small partition for clonzilla and a larger readwrite one for the payload
+
+#parted -s ${dev} mklabel msdos
+#partprobe $dev
+#parted -s -a cylinder ${dev} mkpart primary fat32 8192s 300mB
+# -size for parted picks the whole device, however big it is
+#parted -s -a cylinder ${dev} mkpart primary ext4 800mB -1
+
+# wipe out the current partition table 
+dd if=/dev/zero of=${dev} bs=512 count=1 conv=notrunc
+
+disk_size=`parted /dev/sdb print devices|grep /dev/sdb |sed -e 's/.*(\([0-9]*\)\([A-Z]*\))/\1/'`
+disk_units=`parted /dev/sdb print devices|grep /dev/sdb |sed -e 's/.*(\([0-9]*\)\([A-Z]*\))/\2/'`
+if [ "$dixk_units" = "MB" ]; then
+   multiplier=2048
+fi
+if [ "$dixk_units" = "GB" ]; then
+   multiplier=$(( 2048 * 1024 ))
+fi
+sectors=$(( $disk_size * $multiplier ))
+
+# honor the maximun size set in factory-setting
+max_size=$(( $MAX_DISK * 1024 * 2048 ))
+if [ $sectors -gt $max_size ]; then
+   sectors=$max_size
+fi
+
+sfdisk -u S -L ${dev} << EOF
+63,614400,0x0C,*
+614401,$sectors,,-
+EOF
+
+sleep 5
 partprobe $dev
-parted -s -a cylinder ${dev} mkpart primary fat32 8192s 300mB
-parted -s -a cylinder ${dev} mkpart primary ext4 300mB 800mB
-parted -s -a cylinder ${dev} mkpart primary ext4 800mB 7gB
 
-sleep 1
-partprobe $dev
-
-mkdosfs ${dev}1
-mke2fs -F  -j -L persistence  ${dev}2
-mke2fs -F -j ${dev}3
+mkfs.vfat -F 32  ${dev}1
+mke2fs -F -j ${dev}2
 
 wget ${clonezilla_url} -c -O /tmp/clonezilla.zip
 
 mount ${dev}1 /mnt
 unzip /tmp/clonezilla*.zip -d /mnt/
 
-# substitute our own grub.cfg file
+# substitute our own grub.cfg file for UEFI booting
 cp -f ./grub.cfg /mnt/EFI/boot/
 
-# initialize the persistence config
-umount /mnt
-mount ${dev}2 /mnt
-echo "/ union" >> /mnt/persistence.conf
+# substitute our own syslinus.cfg file for legacy booting
+cp -f ./syslinux.cfg /mnt/syslinux
+
+# on debian, the boot installer fails, substitute our own-
+#  just disables undefined variable check
+mv /mnt/utils/linux/makeboot.sh /mnt/utils/linux/makeboot.sh.bak
+cp -f makeboot.sh /mnt/utils/linux/
+pushd /mnt/utils/linux/
+./makeboot.sh ${dev}1
+popd
+
