@@ -25,13 +25,21 @@ else
    PARTITION=$2
 fi
 
-# create a standard filename <product>-<version>-yymmdd-$1-.img
-# fetch the git hash
-mount $PARTITION /mnt
-YMD=$(date +%y%m%d)
-umount $PARTITION
+if [ -f /root/iiab-last-filename ]; then
+   FILENAME=`cat /root/iiab-last-filename`
+   mv -f /root/iiab-last-filename /root/.iiab-last-filename
+else
+   mount $PARTITION /mnt
+   pushd /mnt/opt/schoolserver/xsce
+   # create a standard filename <product>-<version>-yymmdd-$1-<hash>.img
+   # fetch the git hash
+   HASH=`git log --pretty=format:'g%h' -n 1`
+   YMD=$(date +%y%m%d)
+   popd
+   umount $PARTITION
+fi
  
-FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 )
+FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 $HASH)
  
 if [ ! -b $PARTITION ];then
    echo "Device $PARTITION not found".

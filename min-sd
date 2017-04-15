@@ -52,9 +52,16 @@ mount $PARTITION /mnt/sdcard
 touch /mnt/sdcard/.resize-rootfs
 
 # create id for image
+pushd /mnt/sdcard/opt/schoolserver/xsce
+HASH=`git log --pretty=format:'g%h' -n 1`
 YMD=$(date +%y%m%d)
-FILENAME=$(printf "%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 )
+FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 $HASH )
 echo $FILENAME > /mnt/sdcard/.xsce-image
+popd 
+
+# save this filename for later use
+echo $FILENAME > /root/last-iiab-filename
+echo $HASH > /root/last-iiab-hash
 
 umount /mnt/sdcard
 
