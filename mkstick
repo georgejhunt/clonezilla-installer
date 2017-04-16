@@ -97,4 +97,7 @@ cp -f makeboot.sh /mnt/utils/linux/
 pushd /mnt/utils/linux/
 ./makeboot.sh ${dev}1
 popd
-
+umount /mnt
+mount ${dev}2 /mnt
+cp get-hash /mnt
+umount /mnt
