@@ -5,15 +5,20 @@
 # assume that we can write into the current directory
 
 if [ $# -eq 0 ]; then
-   echo "Usage: $0 directory of root-fs
+   echo "Usage: $0 directory of root-fs"
    exit 1
 fi
 
+# we need to chroot into rootfs, since clonezilla does not have git
 mkdir rootfs
 mount $PARTITION rootfs 
+for i in /dev /dev/pts /proc /sys; do sudo mount -B $i /rootfs$i; done
+chroot rootfs
 pushd rootfs/opt/schoolserver/xsce
 HASH=`git log --pretty=format:'g%h' -n 1`
 popd 
+###unmount all processes/
+for i in /sys /proc /dev/pts /dev; do sudo umount /mnt$i; done 
 umount rootfs
 
 # save this filename for later use
