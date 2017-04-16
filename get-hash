@@ -2,19 +2,20 @@
 # mount the root partition and fetch the git hash
 # parameter 1 - partition of rootfs
 
+# assume that we can write into the current directory
+
 if [ $# -eq 0 ]; then
    echo "Usage: $0 directory of root-fs
    exit 1
 fi
 
-mount $PARTITION /mnt
-pushd /mnt/opt/schoolserver/xsce
+mkdir rootfs
+mount $PARTITION rootfs 
+pushd rootfs/opt/schoolserver/xsce
 HASH=`git log --pretty=format:'g%h' -n 1`
 popd 
-umount /mnt
+umount rootfs
 
 # save this filename for later use
-mount /dev/sdb2 /mnt
-echo $HASH > /mnt/last-iiab-hash
-umount /mnt
+echo $HASH > last-iiab-hash
 
