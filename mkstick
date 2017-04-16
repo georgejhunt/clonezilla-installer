@@ -98,6 +98,12 @@ pushd /mnt/utils/linux/
 ./makeboot.sh ${dev}1
 popd
 umount /mnt
+
+# copy the minify script to the writable partition of the clonezilla tool
 mount ${dev}2 /mnt
-cp get-hash /mnt
+cp cz-min /mnt
+cp factory-settings /mnt
+pushd /mnt
+git clone https://github.com/iiab/iiab-factory
+popd
 umount /mnt
