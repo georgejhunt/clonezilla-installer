@@ -43,17 +43,15 @@ mount $PARTITION rootfs
 touch rootfs/.resize-rootfs
 
 # create id for image
-pushd rootfs/opt/schoolserver/xsce
-HASH=`git log --pretty=format:'g%h' -n 1`
-YMD=$(date +%y%m%d)
+HASH=`cat rootfs/etc/xsce/image-hash`
+YMD=`cat rootfs/etc/xsce/image-date`
 FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 $HASH )
 echo $FILENAME > rootfs/.xsce-image
 echo $HASH > rootfs/etc/xsce/image-hash
 echo $YMD > rootfs/etc/xsce/image-date
-popd 
 
 # save this filename for later use
-echo $FILENAME > /mnt/image-filename
+echo $FILENAME > image-filename
 echo $HASH > image-hash
 
 umount rootfs
