@@ -3,5 +3,9 @@
 
 PRODUCT=iiab
 VERSION=6.2
-MAX_DISK=96
+# following variable controls size of USB stick created
+MAX_DISK=6
+# following instructs minify how small the target should be
+# the clonezilla image must be smaller than the hard disk it is copied to
+SHRINK_TO=10
 

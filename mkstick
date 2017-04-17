@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/bash -x
 # create a USB stick for installing a clonezilla bundle on /dev/sda 
+source factory-settings
 
 clonezilla_url=https://osdn.net/projects/clonezilla/downloads/66768/clonezilla-live-2.5.0-5-amd64.zip
 
@@ -52,22 +53,25 @@ dd if=/dev/zero of=${dev} bs=512 count=1 conv=notrunc
 # wipe out the current partition table 
 dd if=/dev/zero of=${dev} bs=512 count=1 conv=notrunc
 
-disk_size=`parted /dev/sdb print devices|grep /dev/sdb |sed -e 's/.*(\([0-9]*\)\([A-Z]*\))/\1/'`
-disk_units=`parted /dev/sdb print devices|grep /dev/sdb |sed -e 's/.*(\([0-9]*\)\([A-Z]*\))/\2/'`
+disk_size=`parted /dev/sdb print devices|grep /dev/sdb |sed -e 's/.*(\(.*\))/\1/'`
+disk_units=${disk_size:(-2)}
+disk_size=${disk_size:0:(-2)}
 if [ "$dixk_units" = "MB" ]; then
    multiplier=2048
 fi
-if [ "$dixk_units" = "GB" ]; then
+if [ "$disk_units" = "GB" ]; then
    multiplier=$(( 2048 * 1024 ))
 fi
-sectors=$(( $disk_size * $multiplier ))
+digits=`expr match $disk_size '[0-9]*'`
+#digits=$((digits - 1))
+whole_number=${disk_size:0:digits}
+sectors=$(( whole_number * multiplier ))
 
 # honor the maximun size set in factory-setting
-max_size=$(( $MAX_DISK * 1024 * 2048 ))
+max_size=$(( MAX_DISK * 1024 * 2048 ))
 if [ $sectors -gt $max_size ]; then
    sectors=$max_size
 fi
-
 sfdisk -u S -L ${dev} << EOF
 63,614400,0x0C,*
 614401,$sectors,,-
