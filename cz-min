@@ -56,10 +56,9 @@ echo $HASH > image-hash
 
 umount rootfs
 
-# now resize
-
+# now resize the last partition -- probably /libray -- can only resize last
 DEVICE=${PARTITION:0:-1}
-PART_DIGIT=${PARTITION: (-1)}
+PART_DIGIT=`parted $DEVICE print|cut -d' ' -f2 |tail -n1`
 
 PART_START_SECTOR=`parted -sm  $DEVICE unit s print|cut -d: -f1,2|grep $PART_DIGIT:|cut -d: -f2`
 root_start=${PART_START_SECTOR:0:-1}

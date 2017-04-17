@@ -31,8 +31,8 @@ fi
 
 mount $PARTITION /mnt
 
-if [ -f image-filename ]; then
-   FILENAME=`cat image-filename`
+if [ -f /mnt/image-filename ]; then
+   FILENAME=`cat /mnt/image-filename`
 else
    echo "this script needs to work with cz-min script. Please run it on the"
    echo "  target machine first before this script"
@@ -40,8 +40,6 @@ else
 fi
 
 umount $PARTITION
- 
-FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 $HASH)
  
 if [ -z $3 ]; then
    IMAGE_DIR=/curation/images
@@ -57,6 +55,44 @@ umount /media/usb*
 
 DEVICE=${PARTITION:0:-1}
 PART_DIGIT=${PARTITION: (-1)}
+
+umount $PARTITION
+e2fsck -fy $PARTITION
+
+# now resize
+
+DEVICE=${PARTITION:0:-1}
+PART_DIGIT=${PARTITION: (-1)}
+
+PART_START_SECTOR=`parted -sm  $DEVICE unit s print|cut -d: -f1,2|grep $PART_DIGIT:|cut -d: -f2`
+root_start=${PART_START_SECTOR:0:-1}
+
+# total prior sectors is 1 less than start of this one
+prior_sectors=$(( root_start - 1 ))
+
+# resize root file system
+umount $PARTITION
+e2fsck -fy $PARTITION
+minsize=`resize2fs -P $PARTITION | cut -d" " -f7`
+block4k=$(( minsize + 25000 )) # add 100MB OS claims 5% by default
+resize2fs $PARTITION $block4k
+
+umount $PARTITION
+e2fsck -fy $PARTITION
+
+# fetch the new size of ROOT PARTITION
+blocks4k=`e2fsck -n $PARTITION 2>/dev/null|grep blocks|cut -f5 -d" "|cut -d/ -f2`
+
+root_end=$(( (blocks4k * 8) + prior_sectors ))
+
+umount $PARTITION
+e2fsck -fy $PARTITION
+
+umount $PARTITION
+
+# resize root partition
+parted -s $DEVICE rm $PART_DIGIT
+parted -s $DEVICE unit s mkpart primary ext4 $root_start $root_end
 
 umount $PARTITION
 e2fsck -fy $PARTITION
