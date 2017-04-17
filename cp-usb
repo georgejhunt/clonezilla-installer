@@ -1,10 +1,9 @@
 #!/bin/bash -x
-# resize the SD card to minimum size and zip it to image directory
+# resize the USB stick to minimum size and zip it to image directory
 # assume /dev/sdg2 is partition to be shrunk
-# parameter 1 - output file name
+# parameter 1 - dummy name ignored 
 # parameter 2 - optional root device partition otherwise /dev/sdg2
 # parameter 3 - optional image directory otherwise /curation/images
-# Automatically determine a size for the output disk image
 # (including root, swap, and boot partitions).
 #
 # This is calculated by using resize2fs to shrink, then adding the space
@@ -12,7 +11,7 @@
 # Assumes root is last partition
 
 if [ $# -eq 0 ]; then
-   echo "Usage: $0 filename (no .img), optional rootfs device (like /dev/sdg), optional image directory (like /curation/images)"
+   echo "Usage: $0 dummy placeholder filename (no .img), optional rootfs device (like /dev/sdg), optional image directory (like /curation/images)"
    exit 1
 fi
 
@@ -25,27 +24,25 @@ else
    PARTITION=$2
 fi
 
-if [ -f /root/iiab-last-filename ]; then
-   FILENAME=`cat /root/iiab-last-filename`
-   mv -f /root/iiab-last-filename /root/.iiab-last-filename
-else
-   mount $PARTITION /mnt
-   pushd /mnt/opt/schoolserver/xsce
-   # create a standard filename <product>-<version>-yymmdd-$1-<hash>.img
-   # fetch the git hash
-   HASH=`git log --pretty=format:'g%h' -n 1`
-   YMD=$(date +%y%m%d)
-   popd
-   umount $PARTITION
-fi
- 
-FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 $HASH)
- 
 if [ ! -b $PARTITION ];then
    echo "Device $PARTITION not found".
    exit 1
 fi
 
+mount $PARTITION /mnt
+
+if [ -f image-filename ]; then
+   FILENAME=`cat image-filename`
+else
+   echo "this script needs to work with cz-min script. Please run it on the"
+   echo "  target machine first before this script"
+   exit 1
+fi
+
+umount $PARTITION
+ 
+FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 $HASH)
+ 
 if [ -z $3 ]; then
    IMAGE_DIR=/curation/images
 else
