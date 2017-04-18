@@ -1,8 +1,8 @@
 #!/bin/bash -x
-# resize the rootfs to minimum size and prepare for image genation by clonezilla
-# assume /dev/sdg2 is partition to be shrunk
+# resize the last partition to minimum size and prepare for image genation by clonezilla
+# assume last partition on device (not necessarily rootfs) is partition to be shrunk
 # parameter 1 - output file name
-# parameter 2 - optional root device partition otherwise /dev/sdg2
+# parameter 2 - root partition --peek into rootfs, get hash, add to filename
 
 # assumes that current directory is /mnt
 # Automatically determine a size for the output disk image
@@ -13,7 +13,7 @@
 # Assumes root is last partition
 
 if [ $# -eq 0 ]; then
-   echo "Usage: $0 filename (no .img), optional rootfs device (like /dev/sdg3)"
+   echo "Usage: $0 filename (no .img), optional device to shrink (like /dev/sdg3)"
    exit 1
 fi
 
@@ -56,7 +56,7 @@ echo $HASH > image-hash
 
 umount rootfs
 
-# now resize the last partition -- probably /libray -- can only resize last
+# now resize the last partition -- probably /library -- can only resize last
 DEVICE=${PARTITION:0:-1}
 PART_DIGIT=`parted $DEVICE print|cut -d' ' -f2 |tail -n1`
 

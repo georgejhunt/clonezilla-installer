@@ -56,7 +56,7 @@ dd if=/dev/zero of=${dev} bs=512 count=1 conv=notrunc
 disk_size=`parted /dev/sdb print devices|grep /dev/sdb |sed -e 's/.*(\(.*\))/\1/'`
 disk_units=${disk_size:(-2)}
 disk_size=${disk_size:0:(-2)}
-if [ "$dixk_units" = "MB" ]; then
+if [ "$disk_units" = "MB" ]; then
    multiplier=2048
 fi
 if [ "$disk_units" = "GB" ]; then
