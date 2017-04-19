@@ -2,7 +2,7 @@
 # resize the last partition to minimum size and prepare for image genation by clonezilla
 # assume last partition on device (not necessarily rootfs) is partition to be shrunk
 # parameter 1 - output file name
-# parameter 2 - root partition --peek into rootfs, get hash, add to filename
+# parameter 2 - device specifier of root partition ie. /dev/sdb1
 
 # assumes that current directory is /mnt
 # Automatically determine a size for the output disk image
@@ -12,26 +12,20 @@
 # occupied by previous partitions
 # Assumes root is last partition
 
-if [ $# -eq 0 ]; then
-   echo "Usage: $0 filename (no .img), optional device to shrink (like /dev/sdg3)"
+if [ $# -lt 2 ]; then
+   echo "Usage: $0 filename (no .img),root device (/dev/sda1)"
    exit 1
 fi
 
 # get the current settings
 source factory-settings
 
-if [ -z $2 ]; then
-   PARTITION=/dev/sdg2
-else
-   PARTITION=$2
-fi
+PARTITION=$2
 
 if [ ! -b $PARTITION ];then
    echo "Device $PARTITION not found".
    exit 1
 fi
-
-mkdir -p rootfs
 
 umount $PARTITION
 umount /media/usb*
@@ -39,6 +33,7 @@ umount /media/usb*
 # setup to expand on boot
 # assume expand service is installed
 
+mkdir -p rootfs
 mount $PARTITION rootfs
 touch rootfs/.resize-rootfs
 
@@ -47,8 +42,7 @@ HASH=`cat rootfs/etc/xsce/image-hash`
 YMD=`cat rootfs/etc/xsce/image-date`
 FILENAME=$(printf "%s-%s-%s-%s-%s.img" $PRODUCT $VERSION $YMD $1 $HASH )
 echo $FILENAME > rootfs/.xsce-image
-echo $HASH > rootfs/etc/xsce/image-hash
-echo $YMD > rootfs/etc/xsce/image-date
+echo $FILENAME > rootfs/etc/xsce/image-filename
 
 # save this filename for later use
 echo $FILENAME > image-filename
@@ -58,15 +52,16 @@ umount rootfs
 
 # now resize the last partition -- probably /library -- can only resize last
 DEVICE=${PARTITION:0:-1}
-PART_DIGIT=`parted $DEVICE print|cut -d' ' -f2 |tail -n1`
+PART_DIGIT=`parted $DEVICE print | grep ext4 | cut -d' ' -f2 |tail -n1`
+PARTITION=${DEVICE}${PART_DIGIT}
 
-PART_START_SECTOR=`parted -sm  $DEVICE unit s print|cut -d: -f1,2|grep $PART_DIGIT:|cut -d: -f2`
+PART_START_SECTOR=`parted -sm  $DEVICE unit s print | cut -d: -f1,2|grep $PART_DIGIT:|cut -d: -f2`
 root_start=${PART_START_SECTOR:0:-1}
 
 # total prior sectors is 1 less than start of this one
 prior_sectors=$(( root_start - 1 ))
 
-# resize root file system
+# resize the last partition on the device
 umount $PARTITION
 e2fsck -fy $PARTITION
 minsize=`resize2fs -P $PARTITION | cut -d" " -f7`
